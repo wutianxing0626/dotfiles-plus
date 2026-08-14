@@ -1,0 +1,8 @@
+.agents/
+.codex/
+handoff.md
+temp/
+*.bak
+*.swp
+*~
+.DS_Store

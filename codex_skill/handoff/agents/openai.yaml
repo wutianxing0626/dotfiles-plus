@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pre-Context Handoff"
+  short_description: "Write a handoff doc so a new session can continue work."
+  default_prompt: "Use $handoff to write a handoff.md so I can continue this discussion in a new directory."
