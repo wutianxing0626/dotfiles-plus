@@ -19,13 +19,6 @@
 
 - `codex_skill/*` → `$CODEX_HOME/skills/`（默认 `~/.codex/skills`）
 
-## 同步
-
-用 git 管理，推送到 GitHub public repo；新机器 `git clone` 后执行 `./install.sh`
-即可。
-
 ## 当前内容
 
-- `handoff` skill：讨论收尾时生成 `handoff.md`，供新目录里的新会话一次性读取后
-  继续（见 [codex_skill/handoff](codex_skill/handoff/)）；读完后文档归档到
-  任务目录下的 `temp/handoff_archive/`，不进仓库。
+- `handoff` skill：讨论收尾时生成 `handoff.md`，供新目录里的新会话一次性读取后继续（见 [codex_skill/handoff](codex_skill/handoff/)）；读完后文档归档到任务目录下的 `temp/handoff_archive/`，不进仓库。
