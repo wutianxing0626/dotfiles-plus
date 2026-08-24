@@ -2,6 +2,7 @@
 .codex/
 handoff.md
 temp/
+notify-done.conf
 *.bak
 *.swp
 *~

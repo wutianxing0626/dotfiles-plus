@@ -1,0 +1,41 @@
+# notify-done 配置模板
+# 复制到 ~/.config/notify-done.conf 并修改：
+#   cp notify-done.conf.example ~/.config/notify-done.conf
+#   chmod 600 ~/.config/notify-done.conf   # 里面有密码/密钥
+#
+# 也可以直接用安装器一键生成：
+#   ./install-notify-done.sh               # 仅安装 + 生成占位配置
+#   ./install-notify-done.sh --interactive # 交互填写 Webhook 后写入配置
+
+# 通知通道: webhook（企业微信/钉钉/飞书，推荐）或 mail（邮件，备选）
+NOTIFY_BACKEND=webhook
+
+# ---------- 群机器人 webhook（NOTIFY_BACKEND=webhook，默认）----------
+# 先在企业微信/钉钉/飞书群里添加一个“自定义机器人”，复制它的 Webhook 地址填到下面。
+# 企业微信:  群聊 → 添加群机器人 → 复制 Webhook 地址
+# 钉钉:      群设置 → 机器人 → 自定义机器人 → Webhook 地址
+# 飞书:      群设置 → 群机器人 → 添加自定义机器人 → Webhook 地址
+WEBHOOK_MSG_TYPE=wecom        # wecom / dingtalk / feishu
+WEBHOOK_URL=                  # 填你的 Webhook 地址，如 https://open.feishu.cn/open-apis/bot/v2/hook/xxxx
+
+# 通知标题里的机器名（可选，默认取 hostname）
+#NOTIFY_TITLE_PREFIX=my-server
+
+# ---------- 日志捕获（可选）----------
+# 把命令输出写入 ~/.cache/notify-done/，并在通知里附上末尾若干行
+#NOTIFY_LOG_LINES=20       # >0 时附上末尾行数；0 = 关闭（默认）
+#NOTIFY_LOG_ON_ALL=0       # 1 = 成功时也附带日志尾部（默认只在失败时附带）
+#NOTIFY_LOG_DIR=$HOME/.cache/notify-done
+
+# ---------- 邮件（NOTIFY_BACKEND=mail，备选）----------
+# 公司邮箱：SMTP 服务器地址可从邮件客户端设置里看，或问 IT。
+# 个人邮箱常见配置（需先在邮箱网页设置里开启 SMTP 服务并生成“授权码”，密码填授权码）：
+#   QQ 邮箱: smtp.qq.com:465
+#   163:     smtp.163.com:465
+#   Gmail:   smtp.gmail.com:465
+#SMTP_HOST=smtp.qq.com
+#SMTP_PORT=465
+#SMTP_USER=yourname@qq.com
+#SMTP_PASS=你的授权码
+#MAIL_FROM=yourname@qq.com
+#MAIL_TO=yourname@qq.com
