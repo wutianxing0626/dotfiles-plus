@@ -3,6 +3,8 @@
 handoff.md
 temp/
 notify-done.conf
+.zshrc.local
+.zshrc.pre-dotfiles
 *.bak
 *.swp
 *~

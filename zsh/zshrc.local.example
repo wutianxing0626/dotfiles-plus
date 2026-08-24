@@ -1,0 +1,17 @@
+# ~/.zshrc.local —— 机器相关配置，不随仓库走（已在 .gitignore）。
+# 由 zsh 功能的 install.sh 首次生成；若已存在则保留。改这份不影响其他机器。
+# 建议放：conda、nvm、compinstall 的保存位置、机器专属别名/PATH 等。
+
+# compinstall 记住的保存位置（每台机器不同）
+zstyle :compinstall filename "$HOME/.zshrc"
+
+# conda（存在才加载；把路径改成你实际的 conda 目录即可）
+CONDA_DIR="${HOME}/miniconda3"
+if [ -f "${CONDA_DIR}/etc/profile.d/conda.sh" ]; then
+    . "${CONDA_DIR}/etc/profile.d/conda.sh"
+fi
+
+# nvm
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
