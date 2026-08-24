@@ -1,18 +1,27 @@
 #!/usr/bin/env bash
-# dotfiles-plus installer: link repo contents into their canonical locations.
-# Idempotent; safe to re-run.
+# dotfiles-plus installer — 薄调度器，实际安装逻辑在每个功能的 install.sh 里。
+#
+# 用法:
+#   ./install.sh                  # 安装全部功能
+#   ./install.sh notify-done      # 只安装某个功能（可多个）
+#
+# 新增功能时：建 <功能名>/install.sh（幂等、自包含），并把它加进 FEATURES。
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CODEX_SKILLS_DIR="${CODEX_HOME:-$HOME/.codex}/skills"
+FEATURES=(codex_skill notify-done)
 
-# Codex skills: one subdirectory per skill.
-mkdir -p "$CODEX_SKILLS_DIR"
-for skill in "$REPO_DIR"/codex_skill/*/; do
-  [ -d "$skill" ] || continue
-  name="$(basename "$skill")"
-  ln -sfn "$skill" "$CODEX_SKILLS_DIR/$name"
-  echo "linked codex skill: $name"
+targets=("$@")
+[[ ${#targets[@]} -eq 0 ]] && targets=("${FEATURES[@]}")
+
+for name in "${targets[@]}"; do
+  inst="$REPO_DIR/$name/install.sh"
+  if [[ ! -x "$inst" ]]; then
+    echo "错误: 缺少可执行的 $name/install.sh" >&2
+    exit 1
+  fi
+  echo "==> installing $name"
+  "$inst"
 done
 
-echo "done."
+echo "all done."
