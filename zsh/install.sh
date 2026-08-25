@@ -49,9 +49,21 @@ else
   echo "$LOCAL 已存在，跳过"
 fi
 
+# oh-my-zsh 自定义主题：把 bashmix 软链到 custom/themes，保证 ZSH_THEME="bashmix" 可用
+THEME_SRC="$SCRIPT_DIR/themes/bashmix.zsh-theme"
+THEMES_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes"
+if [[ -f "$THEME_SRC" ]]; then
+  mkdir -p "$THEMES_DIR"
+  ln -sfn "$THEME_SRC" "$THEMES_DIR/bashmix.zsh-theme"
+  echo "已软链 bashmix 主题 -> $THEMES_DIR/bashmix.zsh-theme"
+else
+  echo "提示: 未找到 $THEME_SRC，跳过主题链接（ZSH_THEME=bashmix 可能失效）"
+fi
+
 echo
 echo "==> zsh 安装完成 ✅"
 echo "  通用配置: $TARGET -> $SRC"
 echo "  机器配置: $LOCAL"
+echo "  主题: $THEMES_DIR/bashmix.zsh-theme"
 echo "  注意: 若你之前的 conda/nvm 写在旧 ~/.zshrc，可在 $LOCAL 里补上（参考 $BACKUP）。"
 echo "  生效: 新开终端，或 source ~/.zshrc"

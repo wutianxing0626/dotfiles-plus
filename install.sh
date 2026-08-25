@@ -9,7 +9,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FEATURES=(codex_skill zsh notify-done)
+FEATURES=(codex_skill zsh notify-done tmux)
 
 targets=("$@")
 [[ ${#targets[@]} -eq 0 ]] && targets=("${FEATURES[@]}")

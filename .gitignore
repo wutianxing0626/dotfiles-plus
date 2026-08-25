@@ -5,6 +5,7 @@ temp/
 notify-done.conf
 .zshrc.local
 .zshrc.pre-dotfiles
+*.pre-dotfiles
 *.bak
 *.swp
 *~
