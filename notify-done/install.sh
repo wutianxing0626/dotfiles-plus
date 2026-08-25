@@ -66,7 +66,11 @@ done
 add_path_line() {
   local rc="$1"
   [[ -e "$rc" ]] || touch "$rc"
-  if ! grep -q '\.local/bin' "$rc" 2>/dev/null; then
+  if grep -q '\.local/bin' "$rc" 2>/dev/null; then
+    echo "PATH 已包含 ~/.local/bin，跳过: $rc"
+  elif [[ -L "$rc" ]]; then
+    echo "跳过: $rc 是符号链接（指向 $(readlink "$rc")），PATH 请在源文件里维护"
+  else
     printf '\n# ensure ~/.local/bin in PATH\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc"
     echo "已把 ~/.local/bin 加入 PATH: $rc"
   fi
@@ -115,8 +119,12 @@ fi
 append_nd() {
   local rc="$1"
   [[ -e "$rc" ]] || touch "$rc"
-  if grep -q '# notify-done: nd()' "$rc" 2>/dev/null; then
-    echo "nd() 已存在，跳过: $rc"
+  # 按“是否已定义 nd() 函数”判断，而不是按注释标记：
+  # ~/.zshrc 可能是指向仓库 zsh/zshrc 的软链，按标记追加会把仓库文件写脏。
+  if grep -Eq '^[[:space:]]*nd\(\)[[:space:]]*\{[[:space:]]*notify-done' "$rc" 2>/dev/null; then
+    echo "nd() 已定义，跳过: $rc"
+  elif [[ -L "$rc" ]]; then
+    echo "跳过: $rc 是符号链接（指向 $(readlink "$rc")），nd() 请在源文件里维护"
   else
     {
       printf '\n# notify-done: nd() 命令跑完自动通知手机\n'

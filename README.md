@@ -19,7 +19,9 @@
 ./install.sh notify-done     # 只安装某个功能（可多个）
 ```
 
-根目录的 `install.sh` 只是调度器；实际安装逻辑在每个功能目录自己的
+`./install.sh` 会自动先装 zsh 前置依赖（oh-my-zsh + 两个 zsh 插件），
+已存在则跳过；系统级依赖（git/zsh/tmux/curl/python3）仍需先手动安装。
+根目录的 `install.sh` 负责前置依赖 + 调度；实际安装逻辑在每个功能目录自己的
 `install.sh` 里。
 
 ## 当前内容

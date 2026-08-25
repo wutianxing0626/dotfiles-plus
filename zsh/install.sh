@@ -31,6 +31,11 @@ BACKUP="${ZDOTDIR:-$HOME}/.zshrc.pre-dotfiles"
 [[ -f "$SRC" ]]     || { echo "错误: 缺少本目录的 zshrc" >&2; exit 1; }
 [[ -f "$EXAMPLE" ]] || { echo "错误: 缺少本目录的 zshrc.local.example" >&2; exit 1; }
 
+if [[ ! -d "${ZSH:-$HOME/.oh-my-zsh}" ]]; then
+  echo "警告: 未找到 oh-my-zsh（${ZSH:-$HOME/.oh-my-zsh}）" >&2
+  echo "  请先在仓库根目录执行 ./install.sh，它会自动安装 oh-my-zsh 和插件。" >&2
+fi
+
 # 若 ~/.zshrc 是真文件（非我们已建的软链），先备份，避免覆盖已有内容
 if [[ -e "$TARGET" && ! -L "$TARGET" ]]; then
   echo "备份现有 $TARGET -> $BACKUP"
