@@ -29,7 +29,7 @@ nd() { notify-done "$@"; }
 # 用法: tmrun <任务名> <命令...>
 #   例: tmrun train python train.py --epochs 100
 #       命令含引号/管道时整体用引号包起来: tmrun train 'python -c "print(1)"'
-#   日志: $TMRUN_LOGDIR/<任务名>.log（默认 ~/.tmuxlogs）
+#   日志: $TMRUN_LOGDIR/<任务名>.log（默认 当前目录/logs）
 tmrun() {
   if (( $# < 2 )); then
     cat >&2 <<'EOF'
@@ -37,7 +37,7 @@ tmrun() {
   例: tmrun train python train.py --epochs 100
        tmrun train 'python -c "print(1)"'
 命令含引号、管道或重定向时，请整体用引号包起来。
-日志默认写到 $TMRUN_LOGDIR/<任务名>.log（默认 ~/.tmuxlogs），可用 TMRUN_LOGDIR 改。
+日志默认写到 $TMRUN_LOGDIR/<任务名>.log（默认 当前目录/logs），可用 TMRUN_LOGDIR 改。
 EOF
     return 1
   fi
@@ -48,7 +48,7 @@ EOF
     echo "tmrun: 会话 '$name' 已存在；换个名字，或先  tmux kill-session -t '$name'" >&2
     return 1
   fi
-  local logdir="${TMRUN_LOGDIR:-$HOME/.tmuxlogs}"
+  local logdir="${TMRUN_LOGDIR:-$PWD/logs}"
   local log="$logdir/${name}.log"
   mkdir -p "$logdir"
   local cmd="$*"
