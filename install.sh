@@ -10,7 +10,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FEATURES=(codex_skill zsh notify-done tmux)
+FEATURES=(codex_skill zsh notify-done tmux vim)
 
 # ---------- 第一步：oh-my-zsh 与 zsh 插件（幂等，已装则跳过）----------
 ensure_zsh_prereqs() {

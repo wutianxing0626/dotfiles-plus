@@ -8,7 +8,7 @@
 - `notify-done/`：命令跑完自动通知手机的小工具 + 配置模板 + 独立安装器 `install.sh`
 - `zsh/`：zsh 通用配置 + `install.sh`（机器相关配置走 `~/.zshrc.local`）
 - `tmux/`：tmux 配置（上游 `.tmux.conf` + 你的 `.tmux.conf.local`）+ `install.sh`
-- `vim/`：预留，待补充
+- `vim/`：vim 配置（`.vimrc`）+ `install.sh`
 
 ## 安装
 
@@ -30,3 +30,4 @@
 - `notify-done`：跑完命令（无论成败）通过企业微信/钉钉/飞书群机器人通知手机；详见 [notify-done/README.md](notify-done/README.md)。
 - `zsh`：zsh 主题/插件/别名等通用配置随仓库走（含自定义 `bashmix` 主题）；conda/nvm 等机器差异保留在 `~/.zshrc.local`。
 - `tmux`：gpakosz 风格 tmux 配置，上游 `.tmux.conf` + 你的定制 `.tmux.conf.local` 都由仓库托管。
+- `vim`：学习期 `.vimrc`（显示/缩进/搜索/编辑体验 + 中文编码），随仓库走。
