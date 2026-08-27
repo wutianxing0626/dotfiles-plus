@@ -18,6 +18,15 @@ NOTIFY_BACKEND=webhook
 WEBHOOK_MSG_TYPE=wecom        # wecom / dingtalk / feishu
 WEBHOOK_URL=                  # 填你的 Webhook 地址，如 https://open.feishu.cn/open-apis/bot/v2/hook/xxxx
 
+# ---------- 飞书 @ 提醒（仅 WEBHOOK_MSG_TYPE=feishu 生效）----------
+# 被 @ 的用户即使把群消息设为静音，手机端也会收到推送提醒，适合“必须收到”的场景。
+# FEISHU_AT_USERS: 填飞书 open_id（ou_ 开头，仅支持机器人所在群的群成员），
+#   多个用英文逗号分隔；留空 = 不 @ 指定用户。
+#   open_id 获取方法：https://open.feishu.cn/document/uAjLw4CM/ugTN1YjL4UTN24CO1UjN/trouble-shooting/how-to-obtain-openid
+# FEISHU_AT_ALL: 1 = 每次通知都 @ 所有人；0 = 不 @ 所有人（默认）
+FEISHU_AT_USERS=
+FEISHU_AT_ALL=0
+
 # 通知标题里的机器名（可选，默认取 hostname）
 #NOTIFY_TITLE_PREFIX=my-server
 

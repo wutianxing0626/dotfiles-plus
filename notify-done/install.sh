@@ -17,7 +17,8 @@ usage() {
   cat >&2 <<'EOF'
 用法: install.sh [--interactive] [--help]
 
-  --interactive  交互式询问 Webhook 地址、平台类型、通知前缀并写入配置
+  --interactive  交互式询问 Webhook 地址、平台类型、通知前缀并写入配置；
+                 选 feishu 时还会额外询问要 @ 的用户（手机端必收通知）
   --help         显示本帮助
 
 安装内容:
@@ -103,16 +104,35 @@ if [[ $INTERACTIVE -eq 1 ]]; then
   if [[ -z "$p_prefix" ]]; then
     p_prefix="$(hostname 2>/dev/null || echo server)"
   fi
+  # 飞书支持 @ 指定用户 / @ 所有人：被 @ 的人即使群消息静音，手机端也能收到推送
+  p_at_users=""
+  p_at_all=0
+  if [[ "$p_msg" == "feishu" ]]; then
+    echo "飞书可配置 @ 提醒（移动端必收通知的关键）："
+    read -rp "  要 @ 哪些用户？填飞书 open_id（ou_ 开头，多个用英文逗号分隔；回车跳过）: " p_at_users
+    # open_id 不含空格；去掉输入中的空白，避免逗号后的空格写进配置后被 source 误解析
+    p_at_users="$(printf '%s' "$p_at_users" | tr -d '[:space:]')"
+    read -rp "  是否同时 @ 所有人？[y/N] " p_at_all_yn
+    p_at_all_yn="$(printf '%s' "${p_at_all_yn:-n}" | tr '[:upper:]' '[:lower:]')"
+    [[ "$p_at_all_yn" == "y" || "$p_at_all_yn" == "yes" ]] && p_at_all=1
+  fi
   mkdir -p "$(dirname "$CONF_FILE")"
   {
     printf '%s\n' '# notify-done 配置（由 install.sh --interactive 生成）'
     printf 'NOTIFY_BACKEND=%s\n' 'webhook'
     printf 'WEBHOOK_MSG_TYPE=%s\n' "$p_msg"
     printf 'WEBHOOK_URL=%s\n' "$p_url"
+    if [[ "$p_msg" == "feishu" ]]; then
+      printf 'FEISHU_AT_USERS=%s\n' "$p_at_users"
+      printf 'FEISHU_AT_ALL=%s\n' "$p_at_all"
+    fi
     printf 'NOTIFY_TITLE_PREFIX=%s\n' "$p_prefix"
   } > "$CONF_FILE"
   chmod 600 "$CONF_FILE"
   echo "已写入配置: $CONF_FILE"
+  if [[ "$p_msg" == "feishu" && -z "$p_at_users" && "$p_at_all" == 0 ]]; then
+    echo "  提示: 未配置 @ 提醒；之后可在配置里填 FEISHU_AT_USERS / FEISHU_AT_ALL（见模板注释）。"
+  fi
 fi
 
 # ---------- 添加 nd() 到 rc（bash/zsh）----------

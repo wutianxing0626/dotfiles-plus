@@ -19,7 +19,7 @@
 # 1) 在 dotfiles-plus 仓库里运行（或把整个 notify-done 目录拷到服务器）
 cd ~/dotfiles-plus
 
-# 2) 交互安装：会询问平台类型、Webhook 地址、通知前缀
+# 2) 交互安装：会询问平台类型、Webhook 地址、通知前缀；选飞书时还会询问要 @ 的用户
 ./notify-done/install.sh --interactive
 
 # 3) 新开一个终端，测试
@@ -46,6 +46,9 @@ nd --test
 - 群设置 → 群机器人 → 添加机器人 → 自定义机器人 → 复制 Webhook 地址。
 - 配置：`WEBHOOK_MSG_TYPE=feishu`，Webhook 形如 `https://open.feishu.cn/open-apis/bot/v2/hook/xxxx`。
 - 自测：`curl -X POST '你的Webhook' -H 'Content-Type: application/json' -d '{"msg_type":"text","content":{"text":"测试"}}'`
+- @ 提醒：被 @ 的用户即使把群消息设为静音，手机端也能收到推送。在配置里填 `FEISHU_AT_USERS`（open_id，多个用英文逗号分隔）或 `FEISHU_AT_ALL=1` 即可，`install.sh --interactive` 选 feishu 时会直接询问。
+  - open_id 以 `ou_` 开头，仅支持机器人所在群的群成员；获取方法见[飞书官方说明](https://open.feishu.cn/document/uAjLw4CM/ugTN1YjL4UTN24CO1UjN/trouble-shooting/how-to-obtain-openid)。
+  - 自测 @：`curl -X POST '你的Webhook' -H 'Content-Type: application/json' -d '{"msg_type":"text","content":{"text":"测试<at user_id=\"ou_你的open_id\"></at>"}}'`
 
 > 注意：上面自测命令里 JSON 只含英文时不会报错；但脚本发送的是完整通知（含换行，用 python3 正确转义），自测仅用于确认网络与机器人本身可用。
 

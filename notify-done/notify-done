@@ -169,11 +169,17 @@ send_webhook() {
   local msg_type="${WEBHOOK_MSG_TYPE:-wecom}"
   local payload
   # 用 python3 生成 JSON，避免对 jq 的强依赖（json.dumps 会正确转义换行/引号/特殊字符）
-  payload="$(python3 - "$msg_type" "$text" <<'PY'
+  payload="$(python3 - "$msg_type" "$text" "${FEISHU_AT_USERS:-}" "${FEISHU_AT_ALL:-0}" <<'PY'
 import json, sys
-msg_type = sys.argv[1]
-text = sys.argv[2].rstrip("\n")
+msg_type, text, at_users, at_all = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+text = text.rstrip("\n")
 if msg_type == "feishu":
+    # 飞书 text 消息用 <at> 标签 @ 人：@ 指定用户填群成员的 open_id（ou_ 开头），
+    # @ 所有人填 all。被 @ 的用户即使群消息静音，手机端也能收到推送。
+    if at_all.strip() == "1":
+        text += "\n<at user_id=\"all\"></at>"
+    for uid in (u.strip() for u in at_users.split(",") if u.strip()):
+        text += "\n<at user_id=\"" + uid + "\"></at>"
     print(json.dumps({"msg_type": "text", "content": {"text": text}}))
 else:
     # 企业微信 / 钉钉 使用相同的载荷结构
@@ -201,6 +207,10 @@ if [[ $DRY_RUN -eq 1 ]]; then
   echo "subject: ${subject}"
   echo "body:"
   echo "${body}"
+  if [[ "${WEBHOOK_MSG_TYPE:-wecom}" == "feishu" ]]; then
+    echo "feishu @用户: ${FEISHU_AT_USERS:-（未配置）}"
+    echo "feishu @所有人: ${FEISHU_AT_ALL:-0}"
+  fi
   exit "$status"
 fi
 
