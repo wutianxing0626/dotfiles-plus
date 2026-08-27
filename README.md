@@ -28,5 +28,5 @@
 
 - `handoff` skill：讨论收尾时生成 `handoff.md`，供新目录里的新会话一次性读取后继续（见 [codex_skill/handoff](codex_skill/handoff/)）；读完后文档归档到任务目录下的 `temp/handoff_archive/`，不进仓库。
 - `notify-done`：跑完命令（无论成败）通过企业微信/钉钉/飞书群机器人通知手机；详见 [notify-done/README.md](notify-done/README.md)。
-- `zsh`：zsh 主题/插件/别名等通用配置随仓库走（含自定义 `bashmix` 主题）；`~/.zshrc` 是仓库安装器生成的“托管入口”（真文件），只负责 source 仓库配置，conda init / nvm 等工具写入的内容只追加在入口后面，不会污染仓库；conda/nvm 等机器差异保留在 `~/.zshrc.local`。
+- `zsh`：zsh 主题/插件/别名等通用配置随仓库走（含自定义 `bashmix` 主题）；conda/nvm 等机器差异保留在 `~/.zshrc.local`。
 - `tmux`：gpakosz 风格 tmux 配置，上游 `.tmux.conf` + 你的定制 `.tmux.conf.local` 都由仓库托管。
