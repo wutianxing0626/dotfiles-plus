@@ -23,8 +23,8 @@ WEBHOOK_URL=                  # 填你的 Webhook 地址，如 https://open.feis
 
 # ---------- 日志捕获（可选）----------
 # 把命令输出写入 ~/.cache/notify-done/，并在通知里附上末尾若干行
-#NOTIFY_LOG_LINES=20       # >0 时附上末尾行数；0 = 关闭（默认）
-#NOTIFY_LOG_ON_ALL=0       # 1 = 成功时也附带日志尾部（默认只在失败时附带）
+NOTIFY_LOG_LINES=20        # 附上末尾行数；0 = 关闭
+NOTIFY_LOG_ON_ALL=0        # 1 = 成功时也附带日志尾部；0 = 只在失败/崩溃时附带（默认）
 #NOTIFY_LOG_DIR=$HOME/.cache/notify-done
 
 # ---------- 邮件（NOTIFY_BACKEND=mail，备选）----------
