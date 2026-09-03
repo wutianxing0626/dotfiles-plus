@@ -61,6 +61,24 @@ nd bash -c 'do_a && do_b'         # 需要整条命令链时
 nd --log-file /tmp/run.log python train.py   # 无条件把输出写入指定日志
 ```
 
+### 重试直到成功（--retry）
+
+命令偶发失败、希望“一直重试到成功再通知”时，显式加 `--retry`：
+
+```bash
+nd --retry python train.py                       # 失败后每 1 秒重试，最多共尝试 10 次
+nd --retry-max 30 --retry-sleep 2 python train.py  # 自定义上限与间隔
+nd --retry-max 0 --retry-sleep 0.1 ping -c1 网关   # 无限重试直到成功（等价 until + sleep 0.1）
+```
+
+规则：
+
+- `--retry` / `--retry-max N` / `--retry-sleep S` 任一出现即启用重试；上限含第一次，`0` = 无限。不传这三个参数时行为不变，tmrun 等现有调用不受影响。
+- 默认最多 10 次、间隔 1 秒；conf 里的 `NOTIFY_RETRY_MAX` / `NOTIFY_RETRY_SLEEP` 只改默认值，不会单独启用重试。
+- 只在最终结束时发一条通知：成功会写明“尝试次数”；达到上限仍失败会照常发失败通知并注明已达上限，退出码取最后一次运行结果。
+- 每次失败会往 stderr 打一行进度；开了日志（`--log-file` 或 `NOTIFY_LOG_LINES>0`）时，每次尝试的输出追加进同一份日志并带分隔行，通知里的失败日志尾部即最后一次尝试的输出。
+- 无限重试（`--retry-max 0`）若一直不成功不会收到通知；手动 Ctrl-C / 杀进程同样没有通知（与 kill -9、SSH 断连的限制一致）。
+
 `tmrun` 的用法（命令按参数传给 `sh -c` 执行；含分号时用 `bash -c` 包住，含管道/重定向时用 `sh -c` 包住）：
 
 ```bash

@@ -36,6 +36,12 @@ NOTIFY_LOG_LINES=20        # 附上末尾行数；0 = 关闭
 NOTIFY_LOG_ON_ALL=0        # 1 = 成功时也附带日志尾部；0 = 只在失败/崩溃时附带（默认）
 #NOTIFY_LOG_DIR=$HOME/.cache/notify-done
 
+# ---------- 重试（可选，默认关闭）----------
+# 只提供默认值：必须配合命令行 --retry / --retry-max / --retry-sleep 任一参数才会重试，
+# 单独在配置里设这两个值不会改变现有调用（如 tmrun）的行为。
+#NOTIFY_RETRY_MAX=10        # 含首次的总尝试次数；0 = 无限重试直到成功
+#NOTIFY_RETRY_SLEEP=1       # 失败后重试的间隔秒数，支持小数如 0.1
+
 # ---------- 邮件（NOTIFY_BACKEND=mail，备选）----------
 # 公司邮箱：SMTP 服务器地址可从邮件客户端设置里看，或问 IT。
 # 个人邮箱常见配置（需先在邮箱网页设置里开启 SMTP 服务并生成“授权码”，密码填授权码）：

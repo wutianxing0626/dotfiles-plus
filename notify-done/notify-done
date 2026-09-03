@@ -7,6 +7,8 @@
 #   notify-done --log-file 文件 <命令...>   # 无条件把命令输出写入该文件
 #   notify-done --test                # 发一条测试通知（不跑命令）
 #   notify-done --dry-run <命令...>   # 只打印将要发送的内容，不发
+#   notify-done --retry <命令...>     # 失败后重试直到成功（默认最多 10 次，间隔 1 秒）
+#   notify-done --retry-max 30 --retry-sleep 2 <命令...>  # 自定义上限与间隔；0 = 无限
 #
 # 配置: ~/.config/notify-done.conf（模板见 notify-done.conf.example）
 # 通道: 邮件（mail，推荐）或群机器人 webhook（webhook，支持企业微信/钉钉/飞书）
@@ -21,6 +23,9 @@ NOTIFY_TITLE_PREFIX="$(hostname 2>/dev/null || echo server)"
 NOTIFY_LOG_LINES="${NOTIFY_LOG_LINES:-0}"
 NOTIFY_LOG_ON_ALL="${NOTIFY_LOG_ON_ALL:-0}"
 NOTIFY_LOG_DIR="${NOTIFY_LOG_DIR:-$HOME/.cache/notify-done}"
+# 重试默认值（conf 可覆盖；仅当命令行显式传 --retry* 参数时才启用重试）
+NOTIFY_RETRY_MAX="${NOTIFY_RETRY_MAX:-10}"
+NOTIFY_RETRY_SLEEP="${NOTIFY_RETRY_SLEEP:-1}"
 
 if [[ -f "$CONF_FILE" ]]; then
   # shellcheck source=/dev/null
@@ -29,15 +34,25 @@ fi
 
 usage() {
   cat >&2 <<'EOF'
-用法: notify-done [--log-file 文件] [--test | --dry-run] [--] <命令及其参数...>
+用法: notify-done [--log-file 文件] [--retry [--retry-max N] [--retry-sleep S]]
+                 [--test | --dry-run] [--] <命令及其参数...>
 
 示例:
   notify-done python train.py
   notify-done --log-file /tmp/run.log python train.py
+  notify-done --retry python train.py
+  notify-done --retry-max 30 --retry-sleep 2 python train.py
+  notify-done --retry-max 0 --retry-sleep 0.1 sh -c 'ping -c1 host'
   notify-done --test
   notify-done --dry-run sh -c 'exit 3'
 
+--retry:            失败后按间隔重试，直到成功或达到上限
+--retry-max N:      含首次的总尝试次数；0 = 无限（默认 10）
+--retry-sleep S:    两次尝试的间隔秒数，支持小数如 0.1（默认 1）
 --log-file 文件: 无条件把命令输出写入该文件（不受 NOTIFY_LOG_LINES 开关影响）
+
+--retry / --retry-max / --retry-sleep 任一出现即启用重试；
+NOTIFY_RETRY_MAX / NOTIFY_RETRY_SLEEP 可改默认值（conf 或环境变量），但不单独启用重试。
 
 配置: 编辑 ~/.config/notify-done.conf（模板见 notify-done.conf.example）
 EOF
@@ -47,6 +62,9 @@ EOF
 TEST_MODE=0
 DRY_RUN=0
 LOG_FILE_ARG=""
+RETRY_MODE=0
+RETRY_MAX=""
+RETRY_SLEEP=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -60,13 +78,68 @@ while [[ $# -gt 0 ]]; do
       LOG_FILE_ARG="$2"
       shift 2
       ;;
+    --retry)
+      RETRY_MODE=1
+      shift
+      ;;
+    --retry-max)
+      if [[ $# -lt 2 ]]; then
+        echo "错误: --retry-max 需要一个次数参数" >&2
+        usage
+      fi
+      RETRY_MODE=1
+      RETRY_MAX="$2"
+      shift 2
+      ;;
+    --retry-sleep)
+      if [[ $# -lt 2 ]]; then
+        echo "错误: --retry-sleep 需要一个秒数参数" >&2
+        usage
+      fi
+      RETRY_MODE=1
+      RETRY_SLEEP="$2"
+      shift 2
+      ;;
     --)        shift; break ;;
     -h|--help) usage ;;
     *)         break ;;
   esac
 done
 
+# ---- 重试参数校验（模式由命令行显式开启；conf/env 只提供默认值）----
+if [[ $RETRY_MODE -eq 1 ]]; then
+  RETRY_MAX="${RETRY_MAX:-${NOTIFY_RETRY_MAX:-10}}"
+  RETRY_SLEEP="${RETRY_SLEEP:-${NOTIFY_RETRY_SLEEP:-1}}"
+  if ! [[ "$RETRY_MAX" =~ ^[0-9]+$ ]]; then
+    echo "错误: --retry-max 需要非负整数（0 = 无限），实际为: '$RETRY_MAX'" >&2
+    usage
+  fi
+  if ! [[ "$RETRY_SLEEP" =~ ^[0-9]+(\.[0-9]+)?$ ]] || [[ "$RETRY_SLEEP" =~ ^0+(\.0+)?$ ]]; then
+    echo "错误: --retry-sleep 需要大于 0 的秒数（可小数，如 0.1），实际为: '$RETRY_SLEEP'" >&2
+    usage
+  fi
+fi
+
+# 执行一次命令并捕获退出码；开了日志时第 1 次覆盖写、之后追加写
+run_attempt() {
+  local attempt="$1"
+  shift
+  if [[ -n "$LOG_FILE" ]]; then
+    if [[ $attempt -eq 1 ]]; then
+      "$@" 2>&1 | tee "$LOG_FILE"
+    else
+      "$@" 2>&1 | tee -a "$LOG_FILE"
+    fi
+    status=${PIPESTATUS[0]}
+  else
+    "$@"
+    status=$?
+  fi
+  return "$status"
+}
+
 if [[ $TEST_MODE -eq 1 ]]; then
+  RETRY_MODE=0
   cmd_str="(测试通知)"
   status=0
   start_ts="$(date +%s)"
@@ -77,19 +150,40 @@ else
   fi
   cmd_str="$*"
   start_ts="$(date +%s)"
+
+  # ---- 日志目标：重试全程共用同一文件 ----
+  LOG_FILE=""
   if [[ -n "$LOG_FILE_ARG" ]]; then
     mkdir -p "$(dirname "$LOG_FILE_ARG")"
     LOG_FILE="$LOG_FILE_ARG"
-    "$@" 2>&1 | tee "$LOG_FILE"
-    status=${PIPESTATUS[0]}
   elif [[ ${NOTIFY_LOG_LINES:-0} -gt 0 ]]; then
     mkdir -p "$NOTIFY_LOG_DIR"
     LOG_FILE="${NOTIFY_LOG_FILE:-$NOTIFY_LOG_DIR/notify-$(date '+%Y%m%d-%H%M%S')-$$.log}"
-    "$@" 2>&1 | tee "$LOG_FILE"
-    status=${PIPESTATUS[0]}
+  fi
+
+  # ---- 执行：重试模式（显式开启）或单次执行 ----
+  attempts_total=0
+  if [[ $RETRY_MODE -eq 1 ]]; then
+    while :; do
+      attempts_total=$((attempts_total + 1))
+      run_attempt "$attempts_total" "$@"
+      if [[ $status -eq 0 ]]; then
+        break
+      fi
+      if [[ $RETRY_MAX -ne 0 && $attempts_total -ge $RETRY_MAX ]]; then
+        echo "notify-done: 已达重试上限（${attempts_total} 次），最后一次退出码 ${status}，放弃" >&2
+        break
+      fi
+      echo "notify-done: 第 ${attempts_total} 次尝试失败（退出码 ${status}），${RETRY_SLEEP} 秒后重试" >&2
+      if [[ -n "$LOG_FILE" ]]; then
+        printf '\n===== 第 %s 次尝试失败（退出码 %s），%s 秒后重试 =====\n' \
+          "$attempts_total" "$status" "$RETRY_SLEEP" >> "$LOG_FILE"
+      fi
+      sleep "$RETRY_SLEEP"
+    done
   else
-    "$@"
-    status=$?
+    attempts_total=1
+    run_attempt 1 "$@"
   fi
   end_ts="$(date +%s)"
 fi
@@ -124,6 +218,15 @@ body="主机: $(hostname 2>/dev/null || echo unknown)
 状态: ${result}
 耗时: ${elapsed_str}
 时间: ${now}"
+
+if [[ $RETRY_MODE -eq 1 ]]; then
+  body+="
+尝试次数: ${attempts_total}"
+  if [[ $status -ne 0 && $RETRY_MAX -ne 0 ]]; then
+    body+="
+已重试至上限（${RETRY_MAX} 次）"
+  fi
+fi
 
 # 需要日志时，把命令输出末尾若干行 / 完整日志路径附加到通知里
 if [[ -n "${LOG_FILE:-}" && ${NOTIFY_LOG_LINES:-0} -gt 0 && ( $status -ne 0 || ${NOTIFY_LOG_ON_ALL:-0} -eq 1 ) ]]; then
@@ -222,6 +325,9 @@ send_notification() {
 if [[ $DRY_RUN -eq 1 ]]; then
   echo "== dry-run：以下内容不会实际发送 =="
   echo "backend: ${NOTIFY_BACKEND}"
+  if [[ $RETRY_MODE -eq 1 ]]; then
+    echo "retry: 上限 ${RETRY_MAX} 次（0 = 无限），间隔 ${RETRY_SLEEP} 秒"
+  fi
   echo "subject: ${subject}"
   echo "body:"
   echo "${body}"
