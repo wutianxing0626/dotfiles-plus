@@ -58,6 +58,15 @@ nd --test
 nd python train.py                 # 跑完（无论成败）都通知
 nd -- make -j8 build              # 命令以 - 开头时用 --
 nd bash -c 'do_a && do_b'         # 需要整条命令链时
+nd --log-file /tmp/run.log python train.py   # 无条件把输出写入指定日志
+```
+
+`tmrun` 的用法（命令按参数传给 `sh -c` 执行；含分号时用 `bash -c` 包住，含管道/重定向时用 `sh -c` 包住）：
+
+```bash
+tmrun train python train.py --epochs 100          # 简单命令
+tmrun train bash -c 'echo a; echo b; exit 1'      # 多条命令/分号
+tmrun train sh -c 'echo a | tee out.txt'          # 管道/重定向
 ```
 
 通知内容包括：主机名、命令、成功/失败（含退出码）、耗时、时间。脚本**原样返回命令的退出码**，可继续链式使用：

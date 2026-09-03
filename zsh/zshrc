@@ -28,15 +28,17 @@ nd() { notify-done "$@"; }
 # -- tmrun：在分离 tmux 会话里跑长命令，输出写到日志；有 notify-done 则跑完自动通知 --
 # 用法: tmrun <任务名> <命令...>
 #   例: tmrun train python train.py --epochs 100
-#       命令含引号/管道时整体用引号包起来: tmrun train 'python -c "print(1)"'
+#       命令含分号时按参数传，引号由 tmrun 逐参数保护: tmrun train bash -c 'echo a; exit 1'
+#       命令含管道时显式用 sh -c: tmrun train sh -c 'echo a | tee out.txt'
 #   日志: $TMRUN_LOGDIR/<任务名>.log（默认 当前目录/logs）
 tmrun() {
   if (( $# < 2 )); then
     cat >&2 <<'EOF'
 用法: tmrun <任务名> <命令...>
   例: tmrun train python train.py --epochs 100
-       tmrun train 'python -c "print(1)"'
-命令含引号、管道或重定向时，请整体用引号包起来。
+       tmrun train bash -c 'echo a; echo b; exit 1'
+       tmrun train sh -c 'echo a | tee out.txt'
+命令按参数传给 sh -c 执行；含分号时用 bash -c 包住，含管道/重定向时用 sh -c 包住。
 日志默认写到 $TMRUN_LOGDIR/<任务名>.log（默认 当前目录/logs），可用 TMRUN_LOGDIR 改。
 EOF
     return 1
@@ -49,17 +51,45 @@ EOF
     return 1
   fi
   local logdir="${TMRUN_LOGDIR:-$PWD/logs}"
+  logdir="${logdir:A}"   # 归一化为绝对路径，避免相对路径在 tmux 会话里错位
   local log="$logdir/${name}.log"
   mkdir -p "$logdir"
-  local cmd="$*"
+  # 逐参数 %q 转义再拼接：保护内层引号/分号/管道，避免 sh -c 重新解释
+  local cmd=""
+  local a
+  for a in "$@"; do
+    cmd+="${(q)a} "
+  done
   local runner="sh -c ${(qq)cmd}"
-  if command -v notify-done >/dev/null 2>&1; then
-    runner="notify-done $runner"
+  local has_nd=0
+  command -v notify-done >/dev/null 2>&1 && has_nd=1
+  if (( has_nd )); then
+    runner="notify-done --log-file ${(qq)log} $runner"
   fi
-  tmux new -d -s "$name" "${runner} 2>&1 | tee ${(qq)log}"
+  if (( has_nd )); then
+    tmux new -d -s "$name" "$runner"
+  else
+    tmux new -d -s "$name" "${runner} 2>&1 | tee ${(qq)log}"
+  fi
   echo "tmrun: 会话 '$name' 已启动，日志: $log"
   echo "  查看: tail -f '$log'     附加: tmux attach -t '$name'"
 }
 
 # -- 机器相关配置（存在才加载，不随仓库走）--
 [ -f "${ZDOTDIR:-$HOME}/.zshrc.local" ] && source "${ZDOTDIR:-$HOME}/.zshrc.local"
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/opt/miniconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/opt/miniconda3/etc/profile.d/conda.sh" ]; then
+        . "/opt/miniconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/opt/miniconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+

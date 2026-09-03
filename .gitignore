@@ -2,6 +2,7 @@
 .codex/
 handoff.md
 temp/
+logs/
 notify-done.conf
 .zshrc.local
 .zshrc.pre-dotfiles

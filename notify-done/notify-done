@@ -4,6 +4,7 @@
 # 用法:
 #   notify-done <命令及其参数...>
 #   notify-done -- <命令...>          # 命令以 - 开头时用 --
+#   notify-done --log-file 文件 <命令...>   # 无条件把命令输出写入该文件
 #   notify-done --test                # 发一条测试通知（不跑命令）
 #   notify-done --dry-run <命令...>   # 只打印将要发送的内容，不发
 #
@@ -28,12 +29,15 @@ fi
 
 usage() {
   cat >&2 <<'EOF'
-用法: notify-done [--test | --dry-run] [--] <命令及其参数...>
+用法: notify-done [--log-file 文件] [--test | --dry-run] [--] <命令及其参数...>
 
 示例:
   notify-done python train.py
+  notify-done --log-file /tmp/run.log python train.py
   notify-done --test
   notify-done --dry-run sh -c 'exit 3'
+
+--log-file 文件: 无条件把命令输出写入该文件（不受 NOTIFY_LOG_LINES 开关影响）
 
 配置: 编辑 ~/.config/notify-done.conf（模板见 notify-done.conf.example）
 EOF
@@ -42,11 +46,20 @@ EOF
 
 TEST_MODE=0
 DRY_RUN=0
+LOG_FILE_ARG=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --test)    TEST_MODE=1; shift ;;
     --dry-run) DRY_RUN=1;   shift ;;
+    --log-file)
+      if [[ $# -lt 2 ]]; then
+        echo "错误: --log-file 需要一个文件路径" >&2
+        exit 2
+      fi
+      LOG_FILE_ARG="$2"
+      shift 2
+      ;;
     --)        shift; break ;;
     -h|--help) usage ;;
     *)         break ;;
@@ -64,7 +77,12 @@ else
   fi
   cmd_str="$*"
   start_ts="$(date +%s)"
-  if [[ ${NOTIFY_LOG_LINES:-0} -gt 0 ]]; then
+  if [[ -n "$LOG_FILE_ARG" ]]; then
+    mkdir -p "$(dirname "$LOG_FILE_ARG")"
+    LOG_FILE="$LOG_FILE_ARG"
+    "$@" 2>&1 | tee "$LOG_FILE"
+    status=${PIPESTATUS[0]}
+  elif [[ ${NOTIFY_LOG_LINES:-0} -gt 0 ]]; then
     mkdir -p "$NOTIFY_LOG_DIR"
     LOG_FILE="${NOTIFY_LOG_FILE:-$NOTIFY_LOG_DIR/notify-$(date '+%Y%m%d-%H%M%S')-$$.log}"
     "$@" 2>&1 | tee "$LOG_FILE"
@@ -108,7 +126,7 @@ body="主机: $(hostname 2>/dev/null || echo unknown)
 时间: ${now}"
 
 # 需要日志时，把命令输出末尾若干行 / 完整日志路径附加到通知里
-if [[ ${NOTIFY_LOG_LINES:-0} -gt 0 && ( $status -ne 0 || ${NOTIFY_LOG_ON_ALL:-0} -eq 1 ) && -n "${LOG_FILE:-}" ]]; then
+if [[ -n "${LOG_FILE:-}" && ${NOTIFY_LOG_LINES:-0} -gt 0 && ( $status -ne 0 || ${NOTIFY_LOG_ON_ALL:-0} -eq 1 ) ]]; then
   local_tail="$(tail -n "$NOTIFY_LOG_LINES" "$LOG_FILE" 2>/dev/null | python3 -c 'import sys,re;print(re.sub(r"\x1b\[[0-9;]*[A-Za-z]","",sys.stdin.read()))')"
   if [[ ${#local_tail} -gt 4000 ]]; then
     local_tail="…(过长已截断，完整见日志文件)…${local_tail: -3900}"

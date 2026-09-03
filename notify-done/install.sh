@@ -18,7 +18,8 @@ usage() {
 用法: install.sh [--interactive] [--help]
 
   --interactive  交互式询问 Webhook 地址、平台类型、通知前缀并写入配置；
-                 选 feishu 时还会额外询问要 @ 的用户（手机端必收通知）
+                 还会询问日志尾部行数（默认 20）和成功时是否附日志；
+                 选 feishu 时额外询问要 @ 的用户（手机端必收通知）
   --help         显示本帮助
 
 安装内容:
@@ -116,6 +117,16 @@ if [[ $INTERACTIVE -eq 1 ]]; then
     p_at_all_yn="$(printf '%s' "${p_at_all_yn:-n}" | tr '[:upper:]' '[:lower:]')"
     [[ "$p_at_all_yn" == "y" || "$p_at_all_yn" == "yes" ]] && p_at_all=1
   fi
+  # 日志捕获：失败/崩溃时把命令输出末尾若干行附到通知里（失败排查的关键）
+  read -rp "失败/崩溃时附上末尾几行日志？（0 = 关闭，回车默认 20）: " p_log_lines
+  p_log_lines="${p_log_lines:-20}"
+  read -rp "成功时也附带日志尾部吗？[y/N]（回车默认否，只在失败时附）: " p_log_all_yn
+  p_log_all_yn="$(printf '%s' "${p_log_all_yn:-n}" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$p_log_all_yn" == "y" || "$p_log_all_yn" == "yes" ]]; then
+    p_log_all=1
+  else
+    p_log_all=0
+  fi
   mkdir -p "$(dirname "$CONF_FILE")"
   {
     printf '%s\n' '# notify-done 配置（由 install.sh --interactive 生成）'
@@ -127,9 +138,13 @@ if [[ $INTERACTIVE -eq 1 ]]; then
       printf 'FEISHU_AT_ALL=%s\n' "$p_at_all"
     fi
     printf 'NOTIFY_TITLE_PREFIX=%s\n' "$p_prefix"
+    # 日志捕获：失败/崩溃时把命令输出末尾若干行附到通知里（失败排查的关键）
+    printf 'NOTIFY_LOG_LINES=%s\n' "$p_log_lines"
+    printf 'NOTIFY_LOG_ON_ALL=%s\n' "$p_log_all"
   } > "$CONF_FILE"
   chmod 600 "$CONF_FILE"
   echo "已写入配置: $CONF_FILE"
+  echo "  日志尾部: NOTIFY_LOG_LINES=$p_log_lines（0 = 关闭），NOTIFY_LOG_ON_ALL=$p_log_all（1 = 成功也附）"
   if [[ "$p_msg" == "feishu" && -z "$p_at_users" && "$p_at_all" == 0 ]]; then
     echo "  提示: 未配置 @ 提醒；之后可在配置里填 FEISHU_AT_USERS / FEISHU_AT_ALL（见模板注释）。"
   fi
