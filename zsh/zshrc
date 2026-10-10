@@ -22,6 +22,25 @@ source "$ZSH/oh-my-zsh.sh"
 alias ll='ls -Ahl'
 export PATH="$HOME/.local/bin:$PATH"
 
+# ---- Clash/Mihomo 代理开关 ----
+# 用法: proxyon 开; proxyoff 关。换实例端口: CLASH_PROXY_PORT=7900 proxyon
+proxyon() {
+  local port="${CLASH_PROXY_PORT:-7898}"
+  export http_proxy="http://127.0.0.1:$port"
+  export https_proxy="$http_proxy"
+  export HTTP_PROXY="$http_proxy"
+  export HTTPS_PROXY="$http_proxy"
+  export all_proxy="socks5://127.0.0.1:$port"
+  export ALL_PROXY="$all_proxy"
+  export no_proxy="localhost,127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+  export NO_PROXY="$no_proxy"
+  echo "代理已开启：$http_proxy"
+}
+proxyoff() {
+  unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY no_proxy NO_PROXY
+  echo "代理已关闭"
+}
+
 # -- notify-done：nd() 跑完自动通知手机 --
 nd() { notify-done "$@"; }
 
