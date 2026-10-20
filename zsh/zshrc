@@ -24,8 +24,11 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # ---- Clash/Mihomo 代理开关 ----
 # 用法: proxyon 开; proxyoff 关。换实例端口: CLASH_PROXY_PORT=7900 proxyon
+# 自检地址/超时可覆盖: PROXY_CHECK_URL=... PROXY_CHECK_TIMEOUT=... proxyon
 proxyon() {
   local port="${CLASH_PROXY_PORT:-7898}"
+  local check_url="${PROXY_CHECK_URL:-https://www.google.com/generate_204}"
+  local check_timeout="${PROXY_CHECK_TIMEOUT:-5}"
   export http_proxy="http://127.0.0.1:$port"
   export https_proxy="$http_proxy"
   export HTTP_PROXY="$http_proxy"
@@ -35,6 +38,17 @@ proxyon() {
   export no_proxy="localhost,127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
   export NO_PROXY="$no_proxy"
   echo "代理已开启：$http_proxy"
+
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "连接自检已跳过：未找到 curl" >&2
+  elif curl --fail --silent --show-error --output /dev/null \
+    --proxy "$http_proxy" --max-time "$check_timeout" "$check_url"; then
+    echo "连接自检通过：$check_url"
+  else
+    local check_status=$?
+    echo "连接自检失败（curl 退出码 $check_status）：$check_url" >&2
+    echo "代理环境变量已设置，请检查 mihomo 状态、端口或网络。" >&2
+  fi
 }
 proxyoff() {
   unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY no_proxy NO_PROXY
