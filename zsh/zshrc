@@ -90,8 +90,8 @@ EOF
   else
     tmux new -d -s "$name" "${runner} 2>&1 | tee ${(qq)log}"
   fi
-  echo "tmrun: 会话 '$name' 已启动，日志: $log"
-  echo "  查看: tail -f '$log'     附加: tmux attach -t '$name'"
+  echo "tmrun: 会话 '$name' 已启动，附加: tmux attach -t '$name'"
+  echo "  查看日志: $log"
 }
 
 # -- 机器相关配置（存在才加载，不随仓库走）--
